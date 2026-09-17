@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan Splitter</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#EDEAE1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Scan Splitter">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EDEAE1;
+    --surface: #FBFAF7;
+    --surface-2: #F4F1E9;
+    --ink: #2C4A6E;
+    --ink-dark: #1F3450;
+    --ink-tint: #E4EAF0;
+    --stamp-red: #A6472F;
+    --stamp-red-tint: #F3E4DF;
+    --stamp-green: #3E6B4F;
+    --stamp-green-tint: #E4EDE6;
+    --border: #D8D3C4;
+    --border-strong: #C2BBA6;
+    --text: #2A2620;
+    --text-muted: #6B6558;
+    --radius: 5px;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Work Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1C1B17;
+      --surface: #26241E;
+      --surface-2: #2D2B24;
+      --ink: #7EA3D0;
+      --ink-dark: #A9C4E4;
+      --ink-tint: #253244;
+      --stamp-red: #D98368;
+      --stamp-red-tint: #3A2823;
+      --stamp-green: #8FC3A2;
+      --stamp-green-tint: #223027;
+      --border: #423F35;
+      --border-strong: #55503F;
+      --text: #EDE9DF;
+      --text-muted: #A79F8C;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1C1B17;
+    --surface: #26241E;
+    --surface-2: #2D2B24;
+    --ink: #7EA3D0;
+    --ink-dark: #A9C4E4;
+    --ink-tint: #253244;
+    --stamp-red: #D98368;
+    --stamp-red-tint: #3A2823;
+    --stamp-green: #8FC3A2;
+    --stamp-green-tint: #223027;
+    --border: #423F35;
+    --border-strong: #55503F;
+    --text: #EDE9DF;
+    --text-muted: #A79F8C;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--ink-tint); }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  header.app-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  header.app-header .mark {
+    flex: none;
+    width: 44px;
+    height: 44px;
+  }
+  header.app-header h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  header.app-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 50ch;
+  }
+  .privacy-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: var(--stamp-green);
+    font-weight: 500;
+  }
+  .privacy-note svg { width: 13px; height: 13px; flex: none; }
+
+  /* ---- Drop zone ---- */
+  #dropzone {
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  #dropzone:hover, #dropzone.drag-over {
+    border-color: var(--ink);
+    background: var(--ink-tint);
+  }
+  #dropzone svg { width: 56px; height: 56px; margin-bottom: 14px; }
+  #dropzone .dz-title {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 500;
+    margin: 0 0 6px;
+  }
+  #dropzone .dz-sub { color: var(--text-muted); font-size: 13.5px; margin: 0; }
+  #dropzone .dz-sub b { color: var(--text); font-weight: 600; }
+  #fileInput { display: none; }
+
+  /* ---- Workspace ---- */
+  #workspace { display: none; }
+  #workspace.active { display: block; }
+
+  .filebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 28px 0 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .filebar .fname { font-weight: 600; font-size: 14.5px; }
+  .filebar .fmeta { color: var(--text-muted); font-size: 12.5px; }
+  .btn-text {
+    background: none; border: none; color: var(--ink); font: inherit;
+    font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0;
+  }
+  .btn-text:hover { color: var(--ink-dark); text-decoration: underline; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: var(--text);
+  }
+
+  .mode-choice { display: flex; flex-direction: column; gap: 10px; }
+  .mode-choice label {
+    display: flex; align-items: flex-start; gap: 10px;
+    cursor: pointer; font-size: 14px;
+  }
+  .mode-choice input { margin-top: 3px; accent-color: var(--ink); flex: none; }
+  .mode-choice .mtitle { font-weight: 600; display: block; }
+  .mode-choice .mdesc { color: var(--text-muted); font-size: 12.5px; display: block; margin-top: 1px; }
+
+  .slider-row { display: flex; align-items: center; gap: 14px; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--ink); }
+  .slider-row .sval {
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px; color: var(--text-muted);
+    min-width: 70px; text-align: right;
+  }
+  .sens-hint { color: var(--text-muted); font-size: 12.5px; margin: 8px 0 0; }
+  .gap-warning {
+    margin-top: 10px; padding: 8px 10px; border-radius: 4px;
+    background: var(--stamp-red-tint); color: var(--stamp-red);
+    font-size: 12.5px; font-weight: 600; display: none;
+  }
+  .gap-warning.show { display: block; }
+
+  /* ---- Page filmstrip ---- */
+  .pages-heading {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .pages-heading h2 { font-size: 13px; font-weight: 700; margin: 0; }
+  .pages-heading .hint { font-size: 12px; color: var(--text-muted); }
+
+  .doc-group {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 10px;
+    background: var(--surface);
+  }
+  .doc-group .doc-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 700; color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .doc-group .doc-label .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--ink); flex: none;
+  }
+  .skip-group {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 4px; margin-bottom: 10px;
+    color: var(--text-muted); font-size: 12px; font-style: italic;
+  }
+
+  .thumb-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .thumb {
+    width: 88px;
+    cursor: pointer;
+    text-align: center;
+    user-select: none;
+  }
+  .thumb img {
+    width: 100%; display: block;
+    border: 2.5px solid var(--stamp-green);
+    border-radius: 3px;
+    background: white;
+  }
+  .thumb.blank img { border-color: var(--stamp-red); opacity: .55; }
+  .thumb .tlabel {
+    font-size: 10.5px; margin-top: 4px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .thumb .tstatus {
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+    color: var(--stamp-green);
+  }
+  .thumb.blank .tstatus { color: var(--stamp-red); }
+  .thumb .thint { font-size: 9px; color: var(--text-muted); opacity: 0; transition: opacity .1s; }
+  .thumb:hover .thint { opacity: 1; }
+
+  /* ---- Results ---- */
+  .results-heading { font-size: 13px; font-weight: 700; margin: 24px 0 10px; }
+  .doc-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+  }
+  .doc-row .doc-icon { flex: none; width: 20px; height: 20px; color: var(--ink); }
+  .doc-row input[type=text] {
+    flex: 1; border: 1px solid transparent; background: transparent;
+    font: inherit; font-weight: 600; font-size: 13.5px; color: var(--text);
+    padding: 4px 6px; border-radius: 3px;
+  }
+  .doc-row input[type=text]:hover { border-color: var(--border); }
+  .doc-row input[type=text]:focus { outline: none; border-color: var(--ink); background: var(--surface-2); }
+  .doc-row .doc-pages { flex: none; font-size: 12px; color: var(--text-muted); }
+  .doc-row .icon-btn {
+    flex: none; background: none; border: none; cursor: pointer;
+    color: var(--text-muted); padding: 9px; border-radius: 3px;
+    min-width: 38px; min-height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .doc-row .icon-btn:hover { color: var(--ink); background: var(--ink-tint); }
+  .doc-row .icon-btn svg { width: 16px; height: 16px; display: block; }
+
+  .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 13.5px;
+    border-radius: var(--radius); padding: 11px 18px;
+    cursor: pointer; border: 1.5px solid transparent;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn svg { width: 15px; height: 15px; }
+  .btn-primary { background: var(--ink); color: white; }
+  .btn-primary:hover { background: var(--ink-dark); }
+  .btn-primary:disabled { background: var(--border-strong); cursor: not-allowed; }
+  .btn-secondary { background: transparent; border-color: var(--border-strong); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--ink); color: var(--ink); }
+
+  .status-line {
+    font-size: 12.5px; color: var(--text-muted); margin-top: 10px; min-height: 16px;
+  }
+  .status-line.err { color: var(--stamp-red); font-weight: 600; }
+  .status-line.ok { color: var(--stamp-green); font-weight: 600; }
+
+  .loading-overlay {
+    display: none; align-items: center; gap: 10px;
+    padding: 14px 16px; background: var(--ink-tint); border-radius: var(--radius);
+    font-size: 13px; color: var(--ink); margin-bottom: 18px;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid var(--ink); border-top-color: transparent;
+    animation: spin .7s linear infinite; flex: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border);
+    font-size: 11.5px; color: var(--text-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; border-top-color: var(--ink); }
+  }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 24px 14px 60px; }
+    header.app-header h1 { font-size: 24px; }
+    .thumb { width: 72px; }
+    /* iOS Safari zooms the page in when a focused input's font-size is
+       under 16px — bump it just on small screens so typing a document
+       name doesn't trigger that. */
+    .doc-row input[type=text] { font-size: 16px; }
+    .filebar { flex-wrap: wrap; }
+    .btn { padding: 13px 18px; }
+    .btn-text { padding: 8px 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-header">
+    <svg class="mark" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="6" width="20" height="26" rx="2" style="fill:var(--surface);stroke:var(--stamp-green)" stroke-width="2"/>
+      <rect x="20" y="12" width="20" height="26" rx="2" style="fill:var(--surface);stroke:var(--stamp-red)" stroke-width="2"/>
+      <line x1="16" y1="6" x2="16" y2="32" style="stroke:var(--stamp-green)" stroke-width="1.2" stroke-dasharray="2 2" opacity=".5"/>
+    </svg>
+    <div>
+      <h1>Scan Splitter</h1>
+      <p>Turn one big scan into separate documents — one file per letter, form, or page you fed through the scanner.</p>
+      <div class="privacy-note">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 1.5l5.5 2v4c0 3.5-2.3 6.3-5.5 7-3.2-.7-5.5-3.5-5.5-7v-4l5.5-2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.7 8l1.6 1.6 3-3.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Runs entirely in this browser tab — your scans are never uploaded anywhere
+      </div>
+    </div>
+  </header>
+
+  <div id="dropzone">
+    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="9" y="10" width="26" height="34" rx="2" style="fill:var(--surface-2);stroke:var(--border-strong)" stroke-width="1.6"/>
+      <rect x="21" y="18" width="26" height="34" rx="2" style="fill:var(--surface);stroke:var(--ink)" stroke-width="1.8"/>
+      <line x1="27" y1="27" x2="41" y2="27" style="stroke:var(--ink)" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>
+      <line x1="27" y1="33" x2="41" y2="33" style="stroke:var(--ink)" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>
+      <line x1="27" y1="39" x2="36" y2="39" style="stroke:var(--ink)" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>
+    </svg>
+    <p class="dz-title">Drop your scanned PDF here</p>
+    <p class="dz-sub">or <b>click to browse</b> — works with a scan from any scanner or phone app</p>
+    <input type="file" id="fileInput" accept="application/pdf">
+  </div>
+
+  <div id="workspace">
+    <div class="filebar">
+      <div>
+        <div class="fname" id="fbName">—</div>
+        <div class="fmeta" id="fbMeta">—</div>
+      </div>
+      <button class="btn-text" id="startOverBtn">Start over</button>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <span class="spinner"></span>
+      <span id="loadingText">Reading pages…</span>
+    </div>
+
+    <div class="panel">
+      <h2>How are your documents arranged in this scan?</h2>
+      <div class="mode-choice">
+        <label>
+          <input type="radio" name="mode" value="sheet" checked>
+          <span>
+            <span class="mtitle">Each sheet of paper is its own document</span>
+            <span class="mdesc">The normal case for a stack of separate letters or forms — nothing spans more than one sheet, front and back.</span>
+          </span>
+        </label>
+        <label>
+          <input type="radio" name="mode" value="divider">
+          <span>
+            <span class="mtitle">Documents can be several sheets long</span>
+            <span class="mdesc">Use this if you placed one blank sheet of paper between each document as a divider while scanning.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Blank-page sensitivity</h2>
+      <div class="slider-row">
+        <input type="range" id="thresholdSlider" min="0" max="500" step="1" value="15">
+        <span class="sval" id="thresholdVal">0.150%</span>
+      </div>
+      <p class="sens-hint">Lower this if real pages with very little writing on them (like a signature) are being called blank. Raise it if genuinely blank pages are being kept.</p>
+      <div class="gap-warning" id="gapWarning"></div>
+    </div>
+
+    <div class="pages-heading">
+      <h2>Pages</h2>
+      <span class="hint">Click any page to correct it, if something looks wrong</span>
+    </div>
+    <div id="pagesContainer"></div>
+
+    <div class="results-heading" id="resultsHeading"></div>
+    <div id="docsContainer"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="saveZipBtn">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 11v2a1 1 0 001 1h9a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Save all as ZIP
+      </button>
+      <button class="btn btn-secondary" id="rescanBtn">Re-check pages</button>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <footer>
+    Scan Splitter — a local, offline tool. Nothing you scan here ever leaves your device.
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js";
+
+  // ---------------------------------------------------------------
+  // Core grouping logic — mirrors split_scans.py's group_by_sheet /
+  // group_by_divider exactly.
+  // ---------------------------------------------------------------
+  function groupBySheet(pages) {
+    const documents = [];
+    let list = pages;
+    if (list.length % 2 !== 0) list = list.concat([{ index: null, blank: true }]);
+
+    for (let i = 0; i < list.length; i += 2) {
+      const front = list[i], back = list[i + 1];
+      if (front.blank && back.blank) {
+        continue;
+      }
+      if (!front.blank && back.blank) {
+        documents.push([front.index]);
+      } else if (!front.blank && !back.blank) {
+        documents.push([front.index, back.index]);
+      } else {
+        documents.push([front.index, back.index].filter((x) => x != null));
+      }
+    }
+    return documents;
+  }
+
+  function groupByDivider(pages) {
+    const documents = [];
+    let current = [];
+    let list = pages;
+    if (list.length % 2 !== 0) list = list.concat([{ index: null, blank: true }]);
+
+    for (let i = 0; i < list.length; i += 2) {
+      const front = list[i], back = list[i + 1];
+      if (front.blank && back.blank) {
+        if (current.length) { documents.push(current); current = []; }
+        continue;
+      }
+      if (!front.blank && back.blank) {
+        current.push(front.index);
+      } else if (!front.blank && !back.blank) {
+        current.push(front.index, back.index);
+      } else {
+        current.push(...[front.index, back.index].filter((x) => x != null));
+      }
+    }
+    if (current.length) documents.push(current);
+    return documents;
+  }
+
+  // ---------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------
+  const state = {
+    fileBytes: null,
+    fileName: "",
+    pages: [],       // {index, thumbUrl, inkFraction, override(null|bool)}
+    mode: "sheet",
+    threshold: 0.0015,
+    documents: [],    // array of page-index arrays
+    docNames: [],     // parallel array of user-editable names
+  };
+
+  let downloadsCapPromise = null;
+  function getDownloadsCapability() {
+    if (downloadsCapPromise) return downloadsCapPromise;
+    downloadsCapPromise = (async () => {
+      if (typeof window.claude === "undefined" || !window.claude || typeof window.claude.use !== "function") {
+        return null;
+      }
+      try {
+        return await window.claude.use("downloads");
+      } catch (e) {
+        return null;
+      }
+    })();
+    return downloadsCapPromise;
+  }
+
+  async function saveFile(filename, data) {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: guessMime(filename) });
+    const dl = await getDownloadsCapability();
+    if (dl) {
+      try {
+        await dl.save({ filename, data: blob });
+        return { ok: true };
+      } catch (e) {
+        if (e && e.code === "declined") return { ok: false, declined: true };
+        // fall through to browser fallback on anything else
+      }
+    }
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 8000);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e };
+    }
+  }
+
+  function guessMime(filename) {
+    if (filename.endsWith(".zip")) return "application/zip";
+    if (filename.endsWith(".pdf")) return "application/pdf";
+    return "application/octet-stream";
+  }
+
+  // ---------------------------------------------------------------
+  // File loading + rendering
+  // ---------------------------------------------------------------
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const workspace = document.getElementById("workspace");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  const loadingText = document.getElementById("loadingText");
+  const statusLine = document.getElementById("statusLine");
+
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag-over"); });
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag-over"));
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("drag-over");
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  fileInput.addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) loadFile(f);
+  });
+
+  document.getElementById("startOverBtn").addEventListener("click", () => {
+    state.fileBytes = null;
+    state.pages = [];
+    state.documents = [];
+    state.docNames = [];
+    workspace.classList.remove("active");
+    dropzone.style.display = "";
+    fileInput.value = "";
+    statusLine.textContent = "";
+    statusLine.className = "status-line";
+  });
+
+  document.getElementById("rescanBtn").addEventListener("click", () => {
+    recomputeAndRender();
+    statusLine.textContent = "Pages re-checked.";
+    statusLine.className = "status-line ok";
+  });
+
+  document.querySelectorAll('input[name="mode"]').forEach((el) => {
+    el.addEventListener("change", (e) => {
+      state.mode = e.target.value;
+      recomputeAndRender();
+    });
+  });
+
+  const thresholdSlider = document.getElementById("thresholdSlider");
+  const thresholdVal = document.getElementById("thresholdVal");
+  thresholdSlider.addEventListener("input", (e) => {
+    // slider is 0-500 mapped to 0%-5% ink fraction, fine grain where
+    // blank vs. content pages typically sit.
+    const pct = Number(e.target.value) / 100 * 1.0; // percent, 0-1
+    state.threshold = pct / 100;
+    thresholdVal.textContent = pct.toFixed(3) + "%";
+    recomputeAndRender();
+  });
+
+  async function loadFile(file) {
+    if (file.type && file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      statusLine.textContent = "That doesn't look like a PDF. Scan and save as PDF first.";
+      statusLine.className = "status-line err";
+      return;
+    }
+    workspace.classList.add("active");
+    dropzone.style.display = "none";
+    loadingOverlay.classList.add("show");
+    loadingText.textContent = "Reading pages…";
+    statusLine.textContent = "";
+    statusLine.className = "status-line";
+    document.getElementById("pagesContainer").innerHTML = "";
+    document.getElementById("docsContainer").innerHTML = "";
+    document.getElementById("resultsHeading").textContent = "";
+
+    try {
+      const buf = await file.arrayBuffer();
+      state.fileBytes = buf;
+      state.fileName = file.name;
+      document.getElementById("fbName").textContent = file.name;
+      document.getElementById("fbMeta").textContent = "Loading…";
+
+      const loadingTask = pdfjsLib.getDocument({ data: buf.slice(0) });
+      const pdfDoc = await loadingTask.promise;
+      const numPages = pdfDoc.numPages;
+      document.getElementById("fbMeta").textContent = numPages + " page" + (numPages === 1 ? "" : "s");
+
+      state.pages = [];
+      for (let i = 1; i <= numPages; i++) {
+        loadingText.textContent = `Reading page ${i} of ${numPages}…`;
+        const page = await pdfDoc.getPage(i);
+        const base = page.getViewport({ scale: 1 });
+        const scale = 170 / base.width;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext("2d");
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let dark = 0;
+        const totalPx = canvas.width * canvas.height;
+        for (let p = 0; p < imgData.length; p += 4) {
+          const lum = 0.299 * imgData[p] + 0.587 * imgData[p + 1] + 0.114 * imgData[p + 2];
+          if (lum < 200) dark++;
+        }
+        const inkFraction = totalPx ? dark / totalPx : 0;
+
+        state.pages.push({
+          index: i - 1,
+          thumbUrl: canvas.toDataURL("image/png"),
+          inkFraction,
+          override: null,
+        });
+      }
+
+      recomputeAndRender();
+    } catch (err) {
+      console.error(err);
+      statusLine.textContent = "Couldn't read that PDF — it may be corrupted or password-protected.";
+      statusLine.className = "status-line err";
+    } finally {
+      loadingOverlay.classList.remove("show");
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Classification + grouping + rendering
+  // ---------------------------------------------------------------
+  function isBlank(pg) {
+    return pg.override !== null ? pg.override : pg.inkFraction < state.threshold;
+  }
+
+  function recomputeAndRender() {
+    if (!state.pages.length) return;
+
+    const forGrouping = state.pages.map((p) => ({ index: p.index, blank: isBlank(p) }));
+    const documents = state.mode === "sheet" ? groupBySheet(forGrouping) : groupByDivider(forGrouping);
+
+    // preserve existing names where the document count/shape is unchanged in position
+    const oldNames = state.docNames;
+    state.documents = documents;
+    state.docNames = documents.map((_, i) => (oldNames[i] !== undefined ? oldNames[i] : `document_${String(i + 1).padStart(2, "0")}`));
+
+    renderGapWarning();
+    renderPages();
+    renderDocs();
+  }
+
+  function renderGapWarning() {
+    const blanks = state.pages.filter((p) => isBlank(p)).map((p) => p.inkFraction);
+    const contents = state.pages.filter((p) => !isBlank(p)).map((p) => p.inkFraction);
+    const el = document.getElementById("gapWarning");
+    if (blanks.length && contents.length) {
+      const maxBlank = Math.max(...blanks);
+      const minContent = Math.min(...contents);
+      if (maxBlank >= minContent) {
+        el.textContent = "Some pages are hard to tell apart at this sensitivity — check the pages below carefully, or click a page to correct it.";
+        el.classList.add("show");
+      } else {
+        el.classList.remove("show");
+      }
+    } else {
+      el.classList.remove("show");
+    }
+  }
+
+  function renderPages() {
+    const pageToDoc = {};
+    state.documents.forEach((pages, docIdx) => pages.forEach((p) => (pageToDoc[p] = docIdx)));
+
+    const container = document.getElementById("pagesContainer");
+    container.innerHTML = "";
+
+    let i = 0;
+    while (i < state.pages.length) {
+      const docIdx = pageToDoc[state.pages[i].index];
+      if (docIdx === undefined) {
+        // run of skipped/unassigned pages
+        const group = document.createElement("div");
+        group.className = "skip-group";
+        group.textContent = "Blank sheet — not included in any document";
+        const row = document.createElement("div");
+        row.className = "thumb-row";
+        while (i < state.pages.length && pageToDoc[state.pages[i].index] === undefined) {
+          row.appendChild(renderThumb(state.pages[i]));
+          i++;
+        }
+        group.appendChild(row);
+        container.appendChild(group);
+      } else {
+        const group = document.createElement("div");
+        group.className = "doc-group";
+        const label = document.createElement("div");
+        label.className = "doc-label";
+        const pageCount = state.documents[docIdx].length;
+        label.innerHTML = `<span class="dot"></span> Document ${docIdx + 1} — ${pageCount} page${pageCount === 1 ? "" : "s"}`;
+        group.appendChild(label);
+        const row = document.createElement("div");
+        row.className = "thumb-row";
+        while (i < state.pages.length && pageToDoc[state.pages[i].index] === docIdx) {
+          row.appendChild(renderThumb(state.pages[i]));
+          i++;
+        }
+        group.appendChild(row);
+        container.appendChild(group);
+      }
+    }
+  }
+
+  function renderThumb(pg) {
+    const blank = isBlank(pg);
+    const wrap = document.createElement("div");
+    wrap.className = "thumb" + (blank ? " blank" : "");
+    wrap.title = "Click to mark this page as " + (blank ? "content" : "blank");
+    const img = document.createElement("img");
+    img.src = pg.thumbUrl;
+    wrap.appendChild(img);
+    const status = document.createElement("div");
+    status.className = "tstatus";
+    status.textContent = blank ? "Blank" : "Content";
+    wrap.appendChild(status);
+    const lbl = document.createElement("div");
+    lbl.className = "tlabel";
+    lbl.textContent = "Page " + (pg.index + 1);
+    wrap.appendChild(lbl);
+    wrap.addEventListener("click", () => {
+      pg.override = !blank;
+      recomputeAndRender();
+    });
+    return wrap;
+  }
+
+  function renderDocs() {
+    const heading = document.getElementById("resultsHeading");
+    const n = state.documents.length;
+    heading.textContent = n === 0 ? "No documents detected yet" : `${n} document${n === 1 ? "" : "s"} found — name them if you'd like`;
+
+    const container = document.getElementById("docsContainer");
+    container.innerHTML = "";
+
+    state.documents.forEach((pages, i) => {
+      const row = document.createElement("div");
+      row.className = "doc-row";
+
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 20 20");
+      icon.setAttribute("fill", "none");
+      icon.setAttribute("class", "doc-icon");
+      icon.innerHTML = '<rect x="4" y="2" width="12" height="16" rx="1.5" stroke="currentColor" stroke-width="1.4"/><line x1="7" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1.2" opacity=".6"/><line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.2" opacity=".6"/>';
+      row.appendChild(icon);
+
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = state.docNames[i];
+      nameInput.addEventListener("input", (e) => { state.docNames[i] = e.target.value; });
+      row.appendChild(nameInput);
+
+      const pagesSpan = document.createElement("span");
+      pagesSpan.className = "doc-pages";
+      pagesSpan.textContent = pages.length + " pg";
+      row.appendChild(pagesSpan);
+
+      const dlBtn = document.createElement("button");
+      dlBtn.className = "icon-btn";
+      dlBtn.title = "Download just this document";
+      dlBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 11v2a1 1 0 001 1h9a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+      dlBtn.addEventListener("click", async () => {
+        statusLine.textContent = "Preparing " + safeFilename(state.docNames[i]) + "…";
+        statusLine.className = "status-line";
+        try {
+          const bytes = await buildDocumentBytes(pages);
+          const res = await saveFile(safeFilename(state.docNames[i]) + ".pdf", bytes);
+          statusLine.textContent = res.ok ? "Saved." : (res.declined ? "Save cancelled." : "Couldn't save that file.");
+          statusLine.className = "status-line " + (res.ok ? "ok" : "err");
+        } catch (e) {
+          console.error(e);
+          statusLine.textContent = "Something went wrong building that PDF.";
+          statusLine.className = "status-line err";
+        }
+      });
+      row.appendChild(dlBtn);
+
+      container.appendChild(row);
+    });
+  }
+
+  function safeFilename(name) {
+    const cleaned = (name || "document").trim().replace(/[\\/:*?"<>|]+/g, "-").slice(0, 100);
+    return cleaned || "document";
+  }
+
+  async function buildDocumentBytes(pageIndices) {
+    const srcDoc = await PDFLib.PDFDocument.load(state.fileBytes.slice(0));
+    const outDoc = await PDFLib.PDFDocument.create();
+    const copied = await outDoc.copyPages(srcDoc, pageIndices);
+    copied.forEach((p) => outDoc.addPage(p));
+    return await outDoc.save();
+  }
+
+  document.getElementById("saveZipBtn").addEventListener("click", async () => {
+    if (!state.documents.length) {
+      statusLine.textContent = "No documents to save yet.";
+      statusLine.className = "status-line err";
+      return;
+    }
+    const btn = document.getElementById("saveZipBtn");
+    btn.disabled = true;
+    statusLine.textContent = "Building PDFs…";
+    statusLine.className = "status-line";
+    try {
+      const srcDoc = await PDFLib.PDFDocument.load(state.fileBytes.slice(0));
+      const zip = new JSZip();
+      const usedNames = new Set();
+      for (let i = 0; i < state.documents.length; i++) {
+        statusLine.textContent = `Building PDF ${i + 1} of ${state.documents.length}…`;
+        const outDoc = await PDFLib.PDFDocument.create();
+        const copied = await outDoc.copyPages(srcDoc, state.documents[i]);
+        copied.forEach((p) => outDoc.addPage(p));
+        const bytes = await outDoc.save();
+        let name = safeFilename(state.docNames[i]);
+        let finalName = name;
+        let n = 2;
+        while (usedNames.has(finalName)) { finalName = name + "_" + n; n++; }
+        usedNames.add(finalName);
+        zip.file(finalName + ".pdf", bytes);
+      }
+      statusLine.textContent = "Packing ZIP…";
+      const blob = await zip.generateAsync({ type: "blob" });
+      const baseName = state.fileName.replace(/\.pdf$/i, "") || "scan";
+      const res = await saveFile(baseName + "_split.zip", blob);
+      statusLine.textContent = res.ok ? "Saved " + state.documents.length + " documents." : (res.declined ? "Save cancelled." : "Couldn't save the ZIP file.");
+      statusLine.className = "status-line " + (res.ok ? "ok" : "err");
+    } catch (e) {
+      console.error(e);
+      statusLine.textContent = "Something went wrong while building the files.";
+      statusLine.className = "status-line err";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
