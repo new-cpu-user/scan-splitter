@@ -6,8 +6,7 @@ you scan is ever uploaded anywhere.
 
 ## Try it
 
-**[Open Scan Splitter](https://USERNAME.github.io/scan-splitter/)**
-*(replace `USERNAME` above once this repo's GitHub Pages is live)*
+**[Open Scan Splitter](https://new-cpu-user.github.io/scan-splitter/)**
 
 ## Why
 
